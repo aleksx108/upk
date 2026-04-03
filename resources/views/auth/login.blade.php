@@ -1,6 +1,6 @@
-﻿<x-guest-layout class="sm:max-w-4xl p-0">
+﻿<x-guest-layout class="p-0">
     <div class="flex flex-col md:flex-row flex-col-reverse">
-        <div class="px-6 py-6 md:px-8 md:py-8 w-full md:w-1/2">
+        <div class="px-6 py-6 md:px-8 md:py-8 w-full md:w-1/2 h-full">
             <!-- Session Status -->
             <x-auth-session-status class="mb-4" :status="session('status')" />
 
