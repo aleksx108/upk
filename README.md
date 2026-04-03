@@ -1,0 +1,2 @@
+# upk
+Uzņēmuma personāla kartotēka
