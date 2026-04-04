@@ -64,7 +64,7 @@ class PersonnelController extends Controller
             'personal_code' => ['required', 'string', 'max:255', 'unique:personnel,personal_code'],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
             'phone_number' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:personnel,email'],
+            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:personnel,email'],
 
             'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],
             'postal_code' => ['nullable', 'string', 'max:255'],
@@ -121,7 +121,7 @@ class PersonnelController extends Controller
             'personal_code' => ['required', 'string', 'max:255', Rule::unique('personnel', 'personal_code')->ignore($personnel->id)],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
             'phone_number' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('personnel', 'email')->ignore($personnel->id)],
+            'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('personnel', 'email')->ignore($personnel->id)],
 
             'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],
             'postal_code' => ['nullable', 'string', 'max:255'],
