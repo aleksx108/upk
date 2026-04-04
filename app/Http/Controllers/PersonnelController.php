@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\CountryCode;
 use App\Models\Personnel;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -19,7 +21,7 @@ class PersonnelController extends Controller
     {
         $search = trim((string) $request->input('q', ''));
 
-        $query = Personnel::query()->orderBy('last_name')->orderBy('first_name');
+        $query = Personnel::query()->with('media')->orderBy('last_name')->orderBy('first_name');
 
         //single input for universal searching in multiple fields
         if ($search !== '') {
@@ -70,9 +72,20 @@ class PersonnelController extends Controller
             'street' => ['nullable', 'string', 'max:255'],
             'street_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:10000'],
+
+            'portrait_photo' => ['nullable', 'image', 'max:5120'],
+            'remove_portrait_photo' => ['sometimes', 'boolean'],
         ]);
 
+        unset($validated['portrait_photo'], $validated['remove_portrait_photo']);
+
         $personnel = Personnel::create($validated);
+
+        if ($request->hasFile('portrait_photo')) {
+            $personnel
+                ->addMediaFromRequest('portrait_photo')
+                ->toMediaCollection('portrait_photo');
+        }
 
         return Redirect::route('personnel.show', $personnel);
     }
@@ -116,13 +129,40 @@ class PersonnelController extends Controller
             'street' => ['nullable', 'string', 'max:255'],
             'street_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:10000'],
+
+            'portrait_photo' => ['nullable', 'image', 'max:5120'],
+            'remove_portrait_photo' => ['sometimes', 'boolean'],
         ]);
+
+        $removePortraitPhoto = $request->boolean('remove_portrait_photo');
+
+        unset($validated['portrait_photo'], $validated['remove_portrait_photo']);
 
         $personnel->update($validated);
 
+        if ($request->hasFile('portrait_photo')) {
+            $personnel
+                ->addMediaFromRequest('portrait_photo')
+                ->toMediaCollection('portrait_photo');
+        } elseif ($removePortraitPhoto) {
+            $personnel->clearMediaCollection('portrait_photo');
+        }
+
         return Redirect::route('personnel.show', $personnel);
     }
+    /**
+     * Render the personnel record as a PDF.
+     */
+    public function pdf(Personnel $personnel)
+    {
+        $personnel->load('media');
 
+        $fileName = 'personnel-'.Str::slug(trim($personnel->first_name.' '.$personnel->last_name.' '.$personnel->personal_code)).'.pdf';
+
+        return Pdf::loadView('personnel.pdf', [
+            'personnel' => $personnel,
+        ])->stream($fileName);
+    }
     /**
      * Remove the specified resource from storage.
      */

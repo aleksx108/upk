@@ -13,6 +13,7 @@ Route::get('/dashboard', DashboardController::class)
 
 Route::middleware('auth')->group(function () {
     Route::resource('personnel', PersonnelController::class);
+    Route::get('personnel/{personnel}/pdf', [PersonnelController::class, 'pdf'])->name('personnel.pdf');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

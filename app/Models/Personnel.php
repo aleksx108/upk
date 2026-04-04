@@ -5,11 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Personnel extends Model
+class Personnel extends Model implements HasMedia
 {
     use HasFactory;
     use SoftDeletes;
+    use InteractsWithMedia;
 
     protected $table = 'personnel';
 
@@ -27,4 +30,20 @@ class Personnel extends Model
         'street_number',
         'notes',
     ];
+
+    protected $appends = [
+        'portrait_photo_url',
+    ];
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('portrait_photo')->singleFile();
+    }
+
+    public function getPortraitPhotoUrlAttribute(): ?string
+    {
+        $url = $this->getFirstMediaUrl('portrait_photo');
+
+        return $url !== '' ? $url : null;
+    }
 }
