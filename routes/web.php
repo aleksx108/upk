@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\OccupationController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +15,8 @@ Route::get('/dashboard', DashboardController::class)
 
 Route::middleware('auth')->group(function () {
     Route::resource('personnel', PersonnelController::class);
+    Route::resource('companies', CompanyController::class);
+    Route::resource('occupations', OccupationController::class);
     Route::get('personnel/{personnel}/pdf', [PersonnelController::class, 'pdf'])->name('personnel.pdf');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

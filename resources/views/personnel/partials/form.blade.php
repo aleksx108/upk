@@ -8,6 +8,24 @@
     $portraitPhotoUrl = $personnel?->portrait_photo_url;
     $placeholderPortraitSrc = asset('img/profile_placeholder.png');
     $portraitSrc = $removePortraitPhoto ? $placeholderPortraitSrc : ($portraitPhotoUrl ?: $placeholderPortraitSrc);
+    $workplaceRows = old('workplaces');
+    if (!is_array($workplaceRows)) {
+        $workplaceRows = $personnel?->workplaces
+            ?->map(fn ($workplace) => [
+                'id' => $workplace->id,
+                'company_id' => $workplace->company_id,
+                'occupation_id' => $workplace->occupation_id,
+                'from_date' => $workplace->from_date?->format('Y-m-d'),
+                'to_date' => $workplace->to_date?->format('Y-m-d'),
+            ])
+            ?->values()
+            ?->toArray() ?? [];
+    } else {
+        $workplaceRows = array_values($workplaceRows);
+    }
+
+    $companies = $companies ?? collect();
+    $occupations = $occupations ?? collect();
 @endphp
 
 <div class="space-y-6">
@@ -183,7 +201,6 @@
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
     </div>
-
     <div class="pt-6">
         <h2 class="text-base font-semibold text-orange-500 border-b border-gray-200 pb-2">{{ __('Address') }}</h2>
 
@@ -257,6 +274,197 @@
                 <x-input-error :messages="$errors->get('street_number')" class="mt-2" />
             </div>
         </div>
+    </div>
+
+    <div class="pt-6">
+        <div class="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
+            <h2 class="text-base font-semibold text-orange-500">{{ __('Workplaces') }}</h2>
+
+            @unless($readonly)
+                <button
+                    type="button"
+                    id="add_workplace"
+                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                >
+                    {{ __('Add workplace') }}
+                </button>
+            @endunless
+        </div>
+
+        @if($readonly)
+            <div class="mt-4">
+                @if(($personnel?->workplaces?->count() ?? 0) === 0)
+                    <p class="text-sm text-gray-500">{{ __('No workplaces added.') }}</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Company') }}</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Occupation') }}</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('From') }}</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('To') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($personnel->workplaces as $workplace)
+                                    <tr>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace->company?->name ?? '-' }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace->occupation?->name ?? '-' }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace->from_date?->format('Y-m-d') ?? '-' }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace->to_date?->format('Y-m-d') ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        @else
+            @php($workplaceCount = is_array($workplaceRows) ? count($workplaceRows) : 0)
+
+            <p id="workplaces_empty" class="mt-4 text-sm text-gray-500 {{ $workplaceCount > 0 ? 'hidden' : '' }}">
+                {{ __('No workplaces yet. Click “Add workplace”.') }}
+            </p>
+
+            <div id="workplaces_container" data-next-index="{{ $workplaceCount }}" class="mt-4 space-y-4">
+                @foreach($workplaceRows as $i => $row)
+                    <div class="workplace-row rounded-lg border border-gray-200 p-4" data-workplace-index="{{ $i }}">
+                        <input type="hidden" name="workplaces[{{ $i }}][id]" value="{{ $row['id'] ?? '' }}" />
+
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <x-input-label for="workplaces_{{ $i }}_company_id" :value="__('Company')" required />
+                                <select
+                                    id="workplaces_{{ $i }}_company_id"
+                                    name="workplaces[{{ $i }}][company_id]"
+                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                    required
+                                >
+                                    <option value="">{{ __('Select') }}</option>
+                                    @foreach($companies as $company)
+                                        <option value="{{ $company->id }}" @selected((string) ($row['company_id'] ?? '') === (string) $company->id)>
+                                            {{ $company->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.company_id')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="workplaces_{{ $i }}_occupation_id" :value="__('Occupation')" required />
+                                <select
+                                    id="workplaces_{{ $i }}_occupation_id"
+                                    name="workplaces[{{ $i }}][occupation_id]"
+                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                    required
+                                >
+                                    <option value="">{{ __('Select') }}</option>
+                                    @foreach($occupations as $occupation)
+                                        <option value="{{ $occupation->id }}" @selected((string) ($row['occupation_id'] ?? '') === (string) $occupation->id)>
+                                            {{ $occupation->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.occupation_id')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="workplaces_{{ $i }}_from_date" :value="__('From date')" />
+                                <x-text-input
+                                    id="workplaces_{{ $i }}_from_date"
+                                    name="workplaces[{{ $i }}][from_date]"
+                                    type="date"
+                                    class="mt-1 block w-full"
+                                    :value="old('workplaces.' . $i . '.from_date', $row['from_date'] ?? '')"
+                                />
+                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.from_date')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="workplaces_{{ $i }}_to_date" :value="__('To date')" />
+                                <x-text-input
+                                    id="workplaces_{{ $i }}_to_date"
+                                    name="workplaces[{{ $i }}][to_date]"
+                                    type="date"
+                                    class="mt-1 block w-full"
+                                    :value="old('workplaces.' . $i . '.to_date', $row['to_date'] ?? '')"
+                                />
+                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.to_date')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex justify-end">
+                            <button type="button" class="remove-workplace inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                {{ __('Remove') }}
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <template id="workplace_template">
+                <div class="workplace-row rounded-lg border border-gray-200 p-4" data-workplace-index="__INDEX__">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <x-input-label for="workplaces___INDEX___company_id" :value="__('Company')" required />
+                            <select
+                                id="workplaces___INDEX___company_id"
+                                name="workplaces[__INDEX__][company_id]"
+                                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                required
+                            >
+                                <option value="">{{ __('Select') }}</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <x-input-label for="workplaces___INDEX___occupation_id" :value="__('Occupation')" required />
+                            <select
+                                id="workplaces___INDEX___occupation_id"
+                                name="workplaces[__INDEX__][occupation_id]"
+                                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                required
+                            >
+                                <option value="">{{ __('Select') }}</option>
+                                @foreach($occupations as $occupation)
+                                    <option value="{{ $occupation->id }}">{{ $occupation->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <x-input-label for="workplaces___INDEX___from_date" :value="__('From date')" />
+                            <x-text-input
+                                id="workplaces___INDEX___from_date"
+                                name="workplaces[__INDEX__][from_date]"
+                                type="date"
+                                class="mt-1 block w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <x-input-label for="workplaces___INDEX___to_date" :value="__('To date')" />
+                            <x-text-input
+                                id="workplaces___INDEX___to_date"
+                                name="workplaces[__INDEX__][to_date]"
+                                type="date"
+                                class="mt-1 block w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex justify-end">
+                        <button type="button" class="remove-workplace inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            {{ __('Remove') }}
+                        </button>
+                    </div>
+                </div>
+            </template>
+        @endif
     </div>
 
     <div class="pt-6">
@@ -345,6 +553,52 @@
                 remove.addEventListener('change', applyRemoveState);
                 applyRemoveState();
             }
+            const workplacesContainer = document.getElementById('workplaces_container');
+            const addWorkplaceButton = document.getElementById('add_workplace');
+            const workplaceTemplate = document.getElementById('workplace_template');
+            const workplacesEmpty = document.getElementById('workplaces_empty');
+
+            if (workplacesContainer && addWorkplaceButton && workplaceTemplate) {
+                let nextIndex = parseInt(workplacesContainer.dataset.nextIndex || '0', 10);
+
+                const addWorkplaceRow = () => {
+                    const html = workplaceTemplate.innerHTML.replaceAll('__INDEX__', String(nextIndex));
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = html.trim();
+
+                    const row = wrapper.firstElementChild;
+                    if (!row) {
+                        return;
+                    }
+
+                    workplacesContainer.appendChild(row);
+                    nextIndex += 1;
+                    workplacesContainer.dataset.nextIndex = String(nextIndex);
+
+                    if (workplacesEmpty) {
+                        workplacesEmpty.classList.add('hidden');
+                    }
+                };
+
+                addWorkplaceButton.addEventListener('click', addWorkplaceRow);
+
+                workplacesContainer.addEventListener('click', (event) => {
+                    const removeButton = event.target.closest('.remove-workplace');
+                    if (!removeButton) {
+                        return;
+                    }
+
+                    const row = removeButton.closest('.workplace-row');
+                    if (row) {
+                        row.remove();
+                    }
+
+                    if (workplacesEmpty && workplacesContainer.querySelectorAll('.workplace-row').length === 0) {
+                        workplacesEmpty.classList.remove('hidden');
+                    }
+                });
+            }
         });
     </script>
 @endunless
+
