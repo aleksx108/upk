@@ -438,13 +438,3 @@ onMounted(() => {
     loadUpcoming();
 });
 </script>
-
-
-
-
-
-
-
-
-
-

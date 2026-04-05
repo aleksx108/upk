@@ -20,7 +20,7 @@
                         <x-text-input id="q" name="q" type="text" class="mt-1 block w-full" :value="$search" placeholder="{{ __('Name, personal code, email') }}" />
                     </div>
 
-                    <button type="submit" class="sm:mt-1 inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Search') }}</button>
+                    <button type="submit" class="sm:mt-1 inline-flex items-center px-4 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Search') }}</button>
 
                     @if($search !== '')
                         <a href="{{ route('personnel.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
@@ -30,19 +30,120 @@
                 </form>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="space-y-4 xl:hidden">
+                        @forelse($personnel as $person)
+                            @php
+                                $initials = \Illuminate\Support\Str::upper(
+                                    \Illuminate\Support\Str::substr((string) $person->first_name, 0, 1)
+                                    .\Illuminate\Support\Str::substr((string) $person->last_name, 0, 1)
+                                );
+
+                                $workplace = $person->workplaces->first();
+                                $fullName = trim((string) ($person->first_name.' '.$person->last_name));
+                            @endphp
+
+                            <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                <div class="flex items-start gap-4">
+                                    <a href="{{ route('personnel.show', $person) }}" class="shrink-0">
+                                        @if($person->portrait_photo_url)
+                                            <img
+                                                src="{{ $person->portrait_photo_url }}"
+                                                alt="{{ __('Portrait photo of :name', ['name' => $fullName]) }}"
+                                                class="h-12 w-12 rounded-full object-cover ring-1 ring-gray-200"
+                                                loading="lazy"
+                                            />
+                                        @else
+                                            <div class="h-12 w-12 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-semibold ring-1 ring-gray-200">
+                                                {{ $initials !== '' ? $initials : '?' }}
+                                            </div>
+                                        @endif
+                                    </a>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <a class="min-w-0 truncate text-base font-semibold text-gray-900 hover:text-orange-700" href="{{ route('personnel.show', $person) }}" title="{{ $fullName }}">
+                                                {{ $fullName }}
+                                            </a>
+                                            <div class="shrink-0 text-xs text-gray-500" title="{{ $person->personal_code }}">
+                                                {{ $person->personal_code }}
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-1 text-sm text-gray-600 break-words">
+                                            {{ $person->email ?? '-' }}
+                                        </div>
+
+                                        <div class="mt-3 space-y-1 text-sm text-gray-700">
+                                            <div class="flex items-baseline justify-between gap-3">
+                                                <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-500">{{ __('Company') }}</span>
+                                                <span class="min-w-0 truncate" title="{{ $workplace?->company?->name ?? '-' }}">
+                                                    {{ $workplace?->company?->name ?? '-' }}
+                                                </span>
+                                            </div>
+                                            <div class="flex items-baseline justify-between gap-3">
+                                                <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-500">{{ __('Occupation') }}</span>
+                                                <span class="min-w-0 truncate" title="{{ $workplace?->occupation?->name ?? '-' }}">
+                                                    {{ $workplace?->occupation?->name ?? '-' }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 flex items-center justify-end gap-2">
+                                            <a href="{{ route('personnel.show', $person) }}" class="inline-flex items-center px-3 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-[11px] text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                                {{ __('View') }}
+                                            </a>
+
+                                            <x-dropdown align="right" width="48">
+                                                <x-slot name="trigger">
+                                                    <button type="button" aria-label="{{ __('More') }}" class="inline-flex items-center justify-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-[11px] text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                                        <span class="sr-only">{{ __('More') }}</span>
+                                                        <i class="fa-solid fa-ellipsis"></i>
+                                                    </button>
+                                                </x-slot>
+
+                                                <x-slot name="content">
+                                                    <x-dropdown-link href="{{ route('personnel.edit', $person) }}">
+                                                        {{ __('Edit') }}
+                                                    </x-dropdown-link>
+
+                                                    <x-dropdown-link href="{{ route('personnel.pdf', $person) }}" target="_blank" rel="noopener">
+                                                        {{ __('Print') }}
+                                                    </x-dropdown-link>
+
+                                                    <form method="POST" action="{{ route('personnel.destroy', $person) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+
+                                                        <button type="submit" class="block w-full px-4 py-2 text-start text-sm leading-5 text-red-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out" onclick="return confirm('{{ __('Delete this record?') }}')">
+                                                            {{ __('Delete') }}
+                                                        </button>
+                                                    </form>
+                                                </x-slot>
+                                            </x-dropdown>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-600">
+                                {{ __('No personnel found.') }}
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <div class="hidden xl:block">
+                        <table class="min-w-full table-fixed divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Photo') }}</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Personal code') }}</th>
+                                    <th class="w-16 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Photo') }}</th>
+                                    <th class="w-40 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Personal code') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Name') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Email') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Company') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Occupation') }}</th>
-                                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
+                                    <th class="w-48 px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -54,15 +155,16 @@
                                         );
 
                                         $workplace = $person->workplaces->first();
+                                        $fullName = trim((string) ($person->first_name.' '.$person->last_name));
                                     @endphp
 
                                     <tr>
-                                        <td class="px-3 py-3 whitespace-nowrap">
+                                        <td class="px-3 py-3">
                                             <a href="{{ route('personnel.show', $person) }}" class="inline-flex items-center">
                                                 @if($person->portrait_photo_url)
                                                     <img
                                                         src="{{ $person->portrait_photo_url }}"
-                                                        alt="{{ __('Portrait photo of :name', ['name' => trim($person->first_name.' '.$person->last_name)]) }}"
+                                                        alt="{{ __('Portrait photo of :name', ['name' => $fullName]) }}"
                                                         class="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200"
                                                         loading="lazy"
                                                     />
@@ -73,39 +175,59 @@
                                                 @endif
                                             </a>
                                         </td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $person->personal_code }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
-                                            <a class="text-orange-700 hover:text-orange-600" href="{{ route('personnel.show', $person) }}">
-                                                {{ $person->first_name }} {{ $person->last_name }}
+                                        <td class="px-3 py-3 text-sm text-gray-900">
+                                            <div class="truncate" title="{{ $person->personal_code }}">{{ $person->personal_code }}</div>
+                                        </td>
+                                        <td class="px-3 py-3 text-sm text-gray-900">
+                                            <a class="block truncate text-orange-700 hover:text-orange-600" href="{{ route('personnel.show', $person) }}" title="{{ $fullName }}">
+                                                {{ $fullName }}
                                             </a>
                                         </td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $person->email ?? '-' }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace?->company?->name ?? '-' }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace?->occupation?->name ?? '-' }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-right">
-                                            <div class="flex justify-end gap-2">
-                                                <a href="{{ route('personnel.pdf', $person) }}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                                    {{ __('Print') }}
-                                                </a>
-
-                                                <a href="{{ route('personnel.show', $person) }}" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                                    {{ __('View') }}
-                                                </a>
-
-                                                <a href="{{ route('personnel.edit', $person) }}" class="inline-flex items-center px-3 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                                    {{ __('Edit') }}
-                                                </a>
-
-                                                <form method="POST" action="{{ route('personnel.destroy', $person) }}">
-                                                    @csrf
-                                                    @method('DELETE')
-
-                                                    <button type="submit" class="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150" onclick="return confirm('{{ __('Delete this record?') }}')">
-                                                        {{ __('Delete') }}
-                                                    </button>
-                                                </form>
-                                            </div>
+                                        <td class="px-3 py-3 text-sm text-gray-900">
+                                            <div class="truncate" title="{{ $person->email ?? '-' }}">{{ $person->email ?? '-' }}</div>
                                         </td>
+                                        <td class="px-3 py-3 text-sm text-gray-900">
+                                            <div class="truncate" title="{{ $workplace?->company?->name ?? '-' }}">{{ $workplace?->company?->name ?? '-' }}</div>
+                                        </td>
+                                        <td class="px-3 py-3 text-sm text-gray-900">
+                                            <div class="truncate" title="{{ $workplace?->occupation?->name ?? '-' }}">{{ $workplace?->occupation?->name ?? '-' }}</div>
+                                        </td>
+                                        <td class="px-3 py-3 text-right">
+    <div class="flex items-center justify-end gap-2 whitespace-nowrap">
+        <a href="{{ route('personnel.show', $person) }}" class="inline-flex items-center px-3 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+            {{ __('View') }}
+        </a>
+
+
+        <x-dropdown align="right" width="48">
+            <x-slot name="trigger">
+                <button type="button" aria-label="{{ __('More') }}" class="inline-flex items-center justify-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <span class="sr-only">{{ __('More') }}</span>
+                    <i class="fa-solid fa-ellipsis"></i>
+                </button>
+            </x-slot>
+
+            <x-slot name="content">
+                <x-dropdown-link href="{{ route('personnel.edit', $person) }}">
+                    {{ __('Edit') }}
+                </x-dropdown-link>
+
+                <x-dropdown-link href="{{ route('personnel.pdf', $person) }}" target="_blank" rel="noopener">
+                    {{ __('Print') }}
+                </x-dropdown-link>
+
+                <form method="POST" action="{{ route('personnel.destroy', $person) }}">
+                    @csrf
+                    @method('DELETE')
+
+                    <button type="submit" class="block w-full px-4 py-2 text-start text-sm leading-5 text-red-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out" onclick="return confirm('{{ __('Delete this record?') }}')">
+                        {{ __('Delete') }}
+                    </button>
+                </form>
+            </x-slot>
+        </x-dropdown>
+    </div>
+</td>
                                     </tr>
                                 @empty
                                     <tr>
