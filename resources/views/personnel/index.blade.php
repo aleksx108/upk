@@ -17,7 +17,7 @@
                 <form method="GET" action="{{ route('personnel.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <div class="flex-1">
                         <x-input-label for="q" :value="__('Search')" />
-                        <x-text-input id="q" name="q" type="text" class="mt-1 block w-full" :value="$search" placeholder="{{ __('Name, personal code, email, phone') }}" />
+                        <x-text-input id="q" name="q" type="text" class="mt-1 block w-full" :value="$search" placeholder="{{ __('Name, personal code, email') }}" />
                     </div>
 
                     <button type="submit" class="sm:mt-1 inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Search') }}</button>
@@ -40,8 +40,8 @@
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Personal code') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Name') }}</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Email') }}</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Phone') }}</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('City') }}</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Company') }}</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Occupation') }}</th>
                                     <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
@@ -52,6 +52,8 @@
                                             \Illuminate\Support\Str::substr((string) $person->first_name, 0, 1)
                                             .\Illuminate\Support\Str::substr((string) $person->last_name, 0, 1)
                                         );
+
+                                        $workplace = $person->workplaces->first();
                                     @endphp
 
                                     <tr>
@@ -78,8 +80,8 @@
                                             </a>
                                         </td>
                                         <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $person->email ?? '-' }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $person->phone_number ?? '-' }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $person->city ?? '-' }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace?->company?->name ?? '-' }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ $workplace?->occupation?->name ?? '-' }}</td>
                                         <td class="px-3 py-3 whitespace-nowrap text-right">
                                             <div class="flex justify-end gap-2">
                                                 <a href="{{ route('personnel.pdf', $person) }}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">

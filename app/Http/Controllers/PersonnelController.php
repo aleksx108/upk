@@ -24,7 +24,19 @@ class PersonnelController extends Controller
     {
         $search = trim((string) $request->input('q', ''));
 
-        $query = Personnel::query()->with('media')->orderBy('last_name')->orderBy('first_name');
+        $query = Personnel::query()
+            ->with([
+                'media',
+                'workplaces' => function ($builder) {
+                    $builder
+                        ->with(['company', 'occupation'])
+                        ->orderByRaw('to_date is null desc')
+                        ->orderByDesc('to_date')
+                        ->orderByDesc('from_date');
+                },
+            ])
+            ->orderBy('last_name')
+            ->orderBy('first_name');
 
         // single input for universal searching in multiple fields
         if ($search !== '') {
@@ -245,5 +257,6 @@ class PersonnelController extends Controller
         $deleteQuery->delete();
     }
 }
+
 
 

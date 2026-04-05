@@ -1,11 +1,17 @@
-﻿<x-guest-layout class="p-0">
+<x-guest-layout class="p-0">
+    @php
+        $demoPrefill = filter_var(env('DEMO_LOGIN_PREFILL', ! app()->environment('production')), FILTER_VALIDATE_BOOL);
+        $demoEmail = (string) env('DEMO_LOGIN_EMAIL', 'admin@upk.lv');
+        $demoPassword = (string) env('DEMO_LOGIN_PASSWORD', 'Password123');
+    @endphp
+
     <div class="flex flex-col md:flex-row flex-col-reverse">
         <div class="px-6 py-6 md:px-8 md:py-8 w-full md:w-1/2 h-full">
             <!-- Session Status -->
             <x-auth-session-status class="mb-4" :status="session('status')" />
 
             <h1 class="text-2xl font-semibold text-gray-900">{{ __('Log in') }}</h1>
-            <p class="mt-1 text-sm text-gray-600">{{ __('Welcome back.') }}</p>
+            <p class="mt-1 text-sm text-gray-600">{{ __('This is a DEMO. Please use the default provided login.') }}</p>
 
             <form class="mt-6" method="POST" action="{{ route('login') }}">
                 @csrf
@@ -13,7 +19,7 @@
                 <!-- Email Address -->
                 <div>
                     <x-input-label for="email" :value="__('Email')" />
-                    <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+                    <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $demoPrefill ? $demoEmail : '')" required autofocus autocomplete="username" />
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
@@ -24,6 +30,7 @@
                     <x-text-input id="password" class="block mt-1 w-full"
                                   type="password"
                                   name="password"
+                                  :value="$demoPrefill ? $demoPassword : ''"
                                   required autocomplete="current-password" />
 
                     <x-input-error :messages="$errors->get('password')" class="mt-2" />
@@ -57,3 +64,4 @@
         </div>
     </div>
 </x-guest-layout>
+
