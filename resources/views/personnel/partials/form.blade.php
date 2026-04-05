@@ -170,6 +170,19 @@
             </select>
             <x-input-error :messages="$errors->get('gender')" class="mt-2" />
         </div>
+
+        <div>
+            <x-input-label for="birthday_date" :value="__('Birthday')" />
+            <x-text-input
+                id="birthday_date"
+                name="birthday_date"
+                type="date"
+                class="mt-1 block w-full"
+                :value="old('birthday_date', $personnel?->birthday_date?->format('Y-m-d'))"
+                :disabled="$readonly"
+            />
+            <x-input-error :messages="$errors->get('birthday_date')" class="mt-2" />
+        </div>
     </div>
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -324,7 +337,7 @@
             @php($workplaceCount = is_array($workplaceRows) ? count($workplaceRows) : 0)
 
             <p id="workplaces_empty" class="mt-4 text-sm text-gray-500 {{ $workplaceCount > 0 ? 'hidden' : '' }}">
-                {{ __('No workplaces yet. Click “Add workplace”.') }}
+                {{ __('No workplaces yet. Click ???Add workplace???.') }}
             </p>
 
             <div id="workplaces_container" data-next-index="{{ $workplaceCount }}" class="mt-4 space-y-4">
@@ -601,4 +614,5 @@
         });
     </script>
 @endunless
+
 

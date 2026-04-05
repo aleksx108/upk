@@ -22,6 +22,7 @@ class Personnel extends Model implements HasMedia
         'last_name',
         'personal_code',
         'gender',
+        'birthday_date',
         'phone_number',
         'email',
         'country_code',
@@ -30,6 +31,10 @@ class Personnel extends Model implements HasMedia
         'street',
         'street_number',
         'notes',
+    ];
+
+    protected $casts = [
+        'birthday_date' => 'date',
     ];
 
     protected $appends = [

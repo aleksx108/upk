@@ -81,6 +81,7 @@ class PersonnelController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'personal_code' => ['required', 'string', 'max:255', 'unique:personnel,personal_code'],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
+            'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
             'phone_number' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:personnel,email'],
 
@@ -155,6 +156,7 @@ class PersonnelController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'personal_code' => ['required', 'string', 'max:255', Rule::unique('personnel', 'personal_code')->ignore($personnel->id)],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
+            'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
             'phone_number' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('personnel', 'email')->ignore($personnel->id)],
 
@@ -257,6 +259,7 @@ class PersonnelController extends Controller
         $deleteQuery->delete();
     }
 }
+
 
 
 

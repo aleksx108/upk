@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardBirthdaysController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\OccupationController;
 use App\Http\Controllers\PersonnelController;
@@ -14,6 +15,7 @@ Route::get('/dashboard', DashboardController::class)
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard/birthdays', DashboardBirthdaysController::class)->middleware('verified')->name('dashboard.birthdays');
     Route::resource('personnel', PersonnelController::class);
     Route::resource('companies', CompanyController::class);
     Route::resource('occupations', OccupationController::class);
@@ -25,3 +27,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
