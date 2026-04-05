@@ -24,6 +24,9 @@ class PersonnelController extends Controller
     {
         $search = trim((string) $request->input('q', ''));
 
+        $companyId = filter_var($request->input('company_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+        $occupationId = filter_var($request->input('occupation_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+
         $query = Personnel::query()
             ->with([
                 'media',
@@ -52,11 +55,33 @@ class PersonnelController extends Controller
             });
         }
 
+        if ($companyId) {
+            $query->whereHas('workplaces', function ($builder) use ($companyId) {
+                $builder->where(function ($builder) {
+                    $builder->whereNull('to_date')->orWhereDate('to_date', '>=', today());
+                })->where('company_id', $companyId);
+            });
+        }
+
+        if ($occupationId) {
+            $query->whereHas('workplaces', function ($builder) use ($occupationId) {
+                $builder->where(function ($builder) {
+                    $builder->whereNull('to_date')->orWhereDate('to_date', '>=', today());
+                })->where('occupation_id', $occupationId);
+            });
+        }
+
         $personnel = $query->paginate(15)->withQueryString();
 
         return view('personnel.index', [
             'personnel' => $personnel,
             'search' => $search,
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'occupations' => Occupation::query()->orderBy('name')->get(['id', 'name']),
+            'companyOptions' => Company::query()->orderBy('name')->get(['id', 'name'])->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values(),
+            'occupationOptions' => Occupation::query()->orderBy('name')->get(['id', 'name'])->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values(),
+            'companyId' => $companyId,
+            'occupationId' => $occupationId,
         ]);
     }
 
@@ -65,9 +90,14 @@ class PersonnelController extends Controller
      */
     public function create(): View
     {
+        $companies = Company::query()->orderBy('name')->get();
+        $occupations = Occupation::query()->orderBy('name')->get();
+
         return view('personnel.create', [
-            'companies' => Company::query()->orderBy('name')->get(),
-            'occupations' => Occupation::query()->orderBy('name')->get(),
+            'companies' => $companies,
+            'occupations' => $occupations,
+            'companyOptions' => $companies->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values(),
+            'occupationOptions' => $occupations->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values(),
         ]);
     }
 
@@ -139,10 +169,15 @@ class PersonnelController extends Controller
     {
         $personnel->load(['media', 'workplaces.company', 'workplaces.occupation']);
 
+        $companies = Company::query()->orderBy('name')->get();
+        $occupations = Occupation::query()->orderBy('name')->get();
+
         return view('personnel.edit', [
             'personnel' => $personnel,
-            'companies' => Company::query()->orderBy('name')->get(),
-            'occupations' => Occupation::query()->orderBy('name')->get(),
+            'companies' => $companies,
+            'occupations' => $occupations,
+            'companyOptions' => $companies->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values(),
+            'occupationOptions' => $occupations->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values(),
         ]);
     }
 

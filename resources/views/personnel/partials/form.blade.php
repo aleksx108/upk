@@ -26,6 +26,9 @@
 
     $companies = $companies ?? collect();
     $occupations = $occupations ?? collect();
+
+    $companyOptions = $companyOptions ?? $companies->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values();
+    $occupationOptions = $occupationOptions ?? $occupations->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values();
 @endphp
 
 <div class="space-y-6">
@@ -34,73 +37,23 @@
     </h2>
 
     <div>
-        <div class="mt-2 flex items-center gap-4">
-            <div class="relative shrink-0">
-                @if($readonly)
-                    <img
-                        src="{{ $portraitSrc }}"
-                        alt="{{ __('Portrait photo') }}"
-                        class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-200"
-                    />
-                @else
-                    <label for="portrait_photo" class="group relative block cursor-pointer">
-                        <img
-                            id="portrait_photo_preview"
-                            src="{{ $portraitSrc }}"
-                            data-placeholder-src="{{ $placeholderPortraitSrc }}"
-                            data-original-src="{{ $portraitPhotoUrl ?? '' }}"
-                            alt="{{ __('Portrait photo') }}"
-                            class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-200"
-                        />
-
-                        <div class="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"></div>
-                        <div class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                            <span class="rounded-md bg-white/90 px-2 py-1 text-xs font-semibold uppercase tracking-widest text-gray-900">
-                                {{ __('Upload') }}
-                            </span>
-                        </div>
-                    </label>
-
-                    <input
-                        id="portrait_photo"
-                        name="portrait_photo"
-                        type="file"
-                        accept="image/*"
-                        class="sr-only"
-                    />
-
-                    @if($portraitPhotoUrl)
-                        <label id="remove_portrait_photo_button" class="absolute -top-1 -right-1 z-10 cursor-pointer rounded-full focus-within:ring-2 focus-within:ring-red-500 focus-within:ring-offset-2 {{ $removePortraitPhoto ? 'hidden' : '' }}">
-                            <input
-                                id="remove_portrait_photo"
-                                type="checkbox"
-                                name="remove_portrait_photo"
-                                value="1"
-                                class="peer sr-only"
-                                @checked(old('remove_portrait_photo'))
-                            />
-                            <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow-sm hover:bg-red-500 peer-checked:bg-red-700">
-                                &times;
-                            </span>
-                        </label>
-                    @endif
-                @endif
-            </div>
-
-            <div class="min-w-0">
-                @if($readonly)
-                    <span class="text-sm text-gray-500">{{ $portraitPhotoUrl ? __('Current photo') : __('No photo') }}</span>
-                @else
-                    <span class="text-sm text-gray-500">
-                        {{ $portraitPhotoUrl ? __('Uploading a new file will replace the current photo.') : __('Hover to upload; click to choose a file.') }}
-                    </span>
-
-                    @if(old('remove_portrait_photo'))
-                        <div class="mt-1 text-sm text-red-700">{{ __('Marked for removal') }}</div>
-                    @endif
-                @endif
-            </div>
-        </div>
+        <div
+            class="vue-portrait-photo-input"
+            data-readonly="{{ $readonly ? '1' : '0' }}"
+            data-original-src="{{ $portraitPhotoUrl ?? '' }}"
+            data-placeholder-src="{{ $placeholderPortraitSrc }}"
+            data-initial-remove="{{ old('remove_portrait_photo') ? '1' : '0' }}"
+            data-file-input-id="portrait_photo"
+            data-file-name="portrait_photo"
+            data-remove-id="remove_portrait_photo"
+            data-remove-name="remove_portrait_photo"
+            data-text-alt="{{ __('Portrait photo') }}"
+            data-text-upload="{{ __('Upload') }}"
+            data-text-current-photo="{{ __('Current photo') }}"
+            data-text-no-photo="{{ __('No photo') }}"
+            data-text-replace="{{ __('Uploading a new file will replace the current photo.') }}"
+            data-text-hover-upload="{{ __('Hover to upload; click to choose a file.') }}"
+        ></div>
 
         <x-input-error :messages="$errors->get('portrait_photo')" class="mt-2" />
         <x-input-error :messages="$errors->get('remove_portrait_photo')" class="mt-2" />
@@ -348,37 +301,55 @@
                         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                             <div>
                                 <x-input-label for="workplaces_{{ $i }}_company_id" :value="__('Company')" required />
-                                <select
-                                    id="workplaces_{{ $i }}_company_id"
-                                    name="workplaces[{{ $i }}][company_id]"
-                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                    required
+                                <div
+                                    class="vue-searchable-select"
+                                    data-id="workplaces_{{ $i }}_company_id"
+                                    data-name="workplaces[{{ $i }}][company_id]"
+                                    data-placeholder="{{ __('Select') }}"
+                                    data-selected="{{ $row['company_id'] ?? '' }}"
+                                    data-options='@json($companyOptions)'
                                 >
-                                    <option value="">{{ __('Select') }}</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}" @selected((string) ($row['company_id'] ?? '') === (string) $company->id)>
-                                            {{ $company->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                    <select
+                                        id="workplaces_{{ $i }}_company_id"
+                                        name="workplaces[{{ $i }}][company_id]"
+                                        class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                        required
+                                    >
+                                        <option value="">{{ __('Select') }}</option>
+                                        @foreach($companies as $company)
+                                            <option value="{{ $company->id }}" @selected((string) ($row['company_id'] ?? '') === (string) $company->id)>
+                                                {{ $company->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 <x-input-error :messages="$errors->get('workplaces.' . $i . '.company_id')" class="mt-2" />
                             </div>
 
                             <div>
                                 <x-input-label for="workplaces_{{ $i }}_occupation_id" :value="__('Occupation')" required />
-                                <select
-                                    id="workplaces_{{ $i }}_occupation_id"
-                                    name="workplaces[{{ $i }}][occupation_id]"
-                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                    required
+                                <div
+                                    class="vue-searchable-select"
+                                    data-id="workplaces_{{ $i }}_occupation_id"
+                                    data-name="workplaces[{{ $i }}][occupation_id]"
+                                    data-placeholder="{{ __('Select') }}"
+                                    data-selected="{{ $row['occupation_id'] ?? '' }}"
+                                    data-options='@json($occupationOptions)'
                                 >
-                                    <option value="">{{ __('Select') }}</option>
-                                    @foreach($occupations as $occupation)
-                                        <option value="{{ $occupation->id }}" @selected((string) ($row['occupation_id'] ?? '') === (string) $occupation->id)>
-                                            {{ $occupation->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                    <select
+                                        id="workplaces_{{ $i }}_occupation_id"
+                                        name="workplaces[{{ $i }}][occupation_id]"
+                                        class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                        required
+                                    >
+                                        <option value="">{{ __('Select') }}</option>
+                                        @foreach($occupations as $occupation)
+                                            <option value="{{ $occupation->id }}" @selected((string) ($row['occupation_id'] ?? '') === (string) $occupation->id)>
+                                                {{ $occupation->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 <x-input-error :messages="$errors->get('workplaces.' . $i . '.occupation_id')" class="mt-2" />
                             </div>
 
@@ -421,32 +392,50 @@
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <x-input-label for="workplaces___INDEX___company_id" :value="__('Company')" required />
-                            <select
-                                id="workplaces___INDEX___company_id"
-                                name="workplaces[__INDEX__][company_id]"
-                                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                required
+                            <div
+                                class="vue-searchable-select"
+                                data-id="workplaces___INDEX___company_id"
+                                data-name="workplaces[__INDEX__][company_id]"
+                                data-placeholder="{{ __('Select') }}"
+                                data-selected=""
+                                data-options='@json($companyOptions)'
                             >
-                                <option value="">{{ __('Select') }}</option>
-                                @foreach($companies as $company)
-                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                @endforeach
-                            </select>
+                                <select
+                                    id="workplaces___INDEX___company_id"
+                                    name="workplaces[__INDEX__][company_id]"
+                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                    required
+                                >
+                                    <option value="">{{ __('Select') }}</option>
+                                    @foreach($companies as $company)
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <div>
                             <x-input-label for="workplaces___INDEX___occupation_id" :value="__('Occupation')" required />
-                            <select
-                                id="workplaces___INDEX___occupation_id"
-                                name="workplaces[__INDEX__][occupation_id]"
-                                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                required
+                            <div
+                                class="vue-searchable-select"
+                                data-id="workplaces___INDEX___occupation_id"
+                                data-name="workplaces[__INDEX__][occupation_id]"
+                                data-placeholder="{{ __('Select') }}"
+                                data-selected=""
+                                data-options='@json($occupationOptions)'
                             >
-                                <option value="">{{ __('Select') }}</option>
-                                @foreach($occupations as $occupation)
-                                    <option value="{{ $occupation->id }}">{{ $occupation->name }}</option>
-                                @endforeach
-                            </select>
+                                <select
+                                    id="workplaces___INDEX___occupation_id"
+                                    name="workplaces[__INDEX__][occupation_id]"
+                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                                    required
+                                >
+                                    <option value="">{{ __('Select') }}</option>
+                                    @foreach($occupations as $occupation)
+                                        <option value="{{ $occupation->id }}">{{ $occupation->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <div>
@@ -499,73 +488,6 @@
 @unless($readonly)
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const input = document.getElementById('portrait_photo');
-            const preview = document.getElementById('portrait_photo_preview');
-            const remove = document.getElementById('remove_portrait_photo');
-            const removeButton = document.getElementById('remove_portrait_photo_button');
-
-            if (!input || !preview) {
-                return;
-            }
-
-            const placeholderSrc = preview.dataset.placeholderSrc;
-            const originalSrc = preview.dataset.originalSrc;
-
-            const applyRemoveState = () => {
-                if (!remove) {
-                    return;
-                }
-
-                if (remove.checked) {
-                    input.value = '';
-
-                    if (placeholderSrc) {
-                        preview.src = placeholderSrc;
-                    }
-
-                    if (removeButton) {
-                        removeButton.classList.add('hidden');
-                    }
-
-                    return;
-                }
-
-                if (removeButton) {
-                    removeButton.classList.remove('hidden');
-                }
-
-                const hasSelectedFile = input.files && input.files.length > 0;
-                if (!hasSelectedFile) {
-                    if (originalSrc) {
-                        preview.src = originalSrc;
-                    } else if (placeholderSrc) {
-                        preview.src = placeholderSrc;
-                    }
-                }
-            };
-
-            input.addEventListener('change', () => {
-                const file = input.files && input.files[0];
-                if (!file) {
-                    return;
-                }
-
-                if (remove && remove.checked) {
-                    remove.checked = false;
-                }
-
-                if (removeButton) {
-                    removeButton.classList.remove('hidden');
-                }
-
-                const url = URL.createObjectURL(file);
-                preview.src = url;
-            });
-
-            if (remove) {
-                remove.addEventListener('change', applyRemoveState);
-                applyRemoveState();
-            }
             const workplacesContainer = document.getElementById('workplaces_container');
             const addWorkplaceButton = document.getElementById('add_workplace');
             const workplaceTemplate = document.getElementById('workplace_template');
@@ -591,6 +513,10 @@
                     if (workplacesEmpty) {
                         workplacesEmpty.classList.add('hidden');
                     }
+
+                    if (window.mountSearchableSelects) {
+                        window.mountSearchableSelects();
+                    }
                 };
 
                 addWorkplaceButton.addEventListener('click', addWorkplaceRow);
@@ -603,6 +529,13 @@
 
                     const row = removeButton.closest('.workplace-row');
                     if (row) {
+                        row.querySelectorAll('.vue-searchable-select').forEach((el) => {
+                            const app = el.__searchableSelectApp;
+                            if (app && typeof app.unmount === 'function') {
+                                app.unmount();
+                            }
+                        });
+
                         row.remove();
                     }
 

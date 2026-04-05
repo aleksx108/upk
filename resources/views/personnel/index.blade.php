@@ -14,15 +14,53 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <form method="GET" action="{{ route('personnel.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <form method="GET" action="{{ route('personnel.index') }}" class="flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-end">
                     <div class="flex-1">
                         <x-input-label for="q" :value="__('Search')" />
                         <x-text-input id="q" name="q" type="text" class="mt-1 block w-full" :value="$search" placeholder="{{ __('Name, personal code, email') }}" />
                     </div>
 
-                    <button type="submit" class="sm:mt-1 inline-flex items-center px-4 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Search') }}</button>
+                    <div class="flex-1">
+                        <x-input-label for="company_id" :value="__('Company')" />
+                        <div
+                            class="vue-searchable-select"
+                            data-id="company_id"
+                            data-name="company_id"
+                            data-placeholder="{{ __('All companies') }}"
+                            data-selected="{{ $companyId }}"
+                            data-options='@json($companyOptions)'
+                        >
+                            <select id="company_id" name="company_id" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
+                                <option value="">{{ __('All companies') }}</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" @selected((string) $companyId === (string) $company->id)>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
 
-                    @if($search !== '')
+                    <div class="flex-1">
+                        <x-input-label for="occupation_id" :value="__('Occupation')" />
+                        <div
+                            class="vue-searchable-select"
+                            data-id="occupation_id"
+                            data-name="occupation_id"
+                            data-placeholder="{{ __('All occupations') }}"
+                            data-selected="{{ $occupationId }}"
+                            data-options='@json($occupationOptions)'
+                        >
+                            <select id="occupation_id" name="occupation_id" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
+                                <option value="">{{ __('All occupations') }}</option>
+                                @foreach($occupations as $occupation)
+                                    <option value="{{ $occupation->id }}" @selected((string) $occupationId === (string) $occupation->id)>{{ $occupation->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="xl:mt-1 inline-flex items-center px-4 py-2 bg-gray-900 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Search') }}</button>
+
+                    @if($search !== '' || $companyId || $occupationId)
                         <a href="{{ route('personnel.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
                             {{ __('Clear') }}
                         </a>
