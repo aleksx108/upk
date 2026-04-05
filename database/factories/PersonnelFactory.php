@@ -47,8 +47,8 @@ class PersonnelFactory extends Factory
             $firstName = fake()->randomElement($femaleFirstNames);
             $lastName = fake()->randomElement($femaleLastNames);
         } else {
-            $firstName = fake()->randomElement(array_merge($maleFirstNames, $femaleFirstNames));
-            $lastName = fake()->randomElement(array_merge($maleLastNames, $femaleLastNames));
+            $firstName = fake()->randomElement($maleFirstNames);
+            $lastName = fake()->randomElement($maleLastNames);
         }
 
         $cities = [
@@ -123,7 +123,7 @@ class PersonnelFactory extends Factory
             'gender' => $gender,
             'phone_number' => $phone,
             'email' => $emailLocal.'@'.$domain,
-
+            'birthday_date' => $birthDate,
             'country_code' => 'LV',
             'postal_code' => 'LV-'.fake()->numerify('####'),
             'city' => fake()->randomElement($cities),
