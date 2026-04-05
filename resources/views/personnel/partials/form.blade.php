@@ -337,7 +337,7 @@
             @php($workplaceCount = is_array($workplaceRows) ? count($workplaceRows) : 0)
 
             <p id="workplaces_empty" class="mt-4 text-sm text-gray-500 {{ $workplaceCount > 0 ? 'hidden' : '' }}">
-                {{ __('No workplaces yet. Click ???Add workplace???.') }}
+                {{ __('No workplaces yet. Click "Add workplace".') }}
             </p>
 
             <div id="workplaces_container" data-next-index="{{ $workplaceCount }}" class="mt-4 space-y-4">
