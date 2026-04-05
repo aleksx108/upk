@@ -38,10 +38,10 @@
                     <div class="p-6">
                         <div class="flex items-center justify-between">
                             <h3 class="text-base font-semibold text-orange-500">{{ __('Upcoming birthdays') }}</h3>
-                            <span class="text-sm text-gray-500">{{ __('Until end of year') }}</span>
+                            <span class="text-sm text-gray-500">{{ __('Next :days days', ['days' => 60]) }}</span>
                         </div>
 
-                        <div class="mt-4 w-full" id="birthday-calendar" data-url="{{ route('dashboard.birthdays', [], false) }}"></div>
+                        <div class="mt-4 w-full" id="birthday-calendar" data-url="{{ route('dashboard.birthdays', [], false) }}" data-days="60"></div>
                     </div>
                 </div>
             </div>

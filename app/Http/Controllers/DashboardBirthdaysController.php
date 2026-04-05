@@ -10,23 +10,33 @@ use Illuminate\Http\JsonResponse;
 class DashboardBirthdaysController extends Controller
 {
     /**
-     * Return JSON data for vue component BirthdayCalendar. Displays people with upcoming birthdays (defaults to the rest of the current year).
+     * Return JSON data for vue component BirthdayCalendar. Displays people with birthdays in a requested date range (or upcoming birthdays by days).
      */
     public function __invoke(Request $request): JsonResponse
     {
-        $daysInput = $request->input('days');
+        $startInput = $request->input('start');
+        $endInput = $request->input('end');
 
-        $start = Carbon::today();
+        if ($startInput && $endInput) {
+            $start = Carbon::parse($startInput)->startOfDay();
+            $end = Carbon::parse($endInput)->startOfDay();
 
-        if ($daysInput === null || $daysInput === '') {
-            $days = $start->diffInDays($start->copy()->endOfYear());
+            if ($end->lt($start)) {
+                [$start, $end] = [$end, $start];
+            }
+
+            if ($start->diffInDays($end) > 366) {
+                $end = $start->copy()->addDays(366);
+            }
+
+            $days = $start->diffInDays($end) + 1;
         } else {
-            $days = (int) $daysInput;
+            $days = (int) $request->integer('days', 60);
+            $days = max(1, min(366, $days));
+
+            $start = Carbon::today();
+            $end = $start->copy()->addDays($days - 1);
         }
-
-        $days = max(0, min(366, $days));
-
-        $end = $start->copy()->addDays($days);
 
         $people = Personnel::query()
             ->with('media')
