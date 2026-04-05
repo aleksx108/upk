@@ -12,7 +12,13 @@ import BirthdayCalendar from './components/BirthdayCalendar.vue';
 const birthdayCalendarEl = document.getElementById('birthday-calendar');
 if (birthdayCalendarEl) {
     const apiUrl = birthdayCalendarEl.dataset.url;
-    const days = Number(birthdayCalendarEl.dataset.days || 60);
-    createApp(BirthdayCalendar, { apiUrl, days }).mount(birthdayCalendarEl);
+    const props = { apiUrl };
+
+    if (birthdayCalendarEl.dataset.days !== undefined) {
+        const days = Number(birthdayCalendarEl.dataset.days);
+        if (Number.isFinite(days)) props.days = days;
+    }
+
+    createApp(BirthdayCalendar, props).mount(birthdayCalendarEl);
 }
 

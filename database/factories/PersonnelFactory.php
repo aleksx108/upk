@@ -121,7 +121,6 @@ class PersonnelFactory extends Factory
             'last_name' => $lastName,
             'personal_code' => $personalCode,
             'gender' => $gender,
-            'birthday_date' => $birthDate->format('Y-m-d'),
             'phone_number' => $phone,
             'email' => $emailLocal.'@'.$domain,
 

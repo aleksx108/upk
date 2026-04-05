@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="w-full rounded-lg border border-gray-200 bg-white p-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -125,7 +125,7 @@
                     <div class="rounded-lg bg-gray-50 p-3">
                         <div class="flex items-center justify-between gap-3">
                             <div class="text-sm font-semibold text-gray-900">Upcoming</div>
-                            <div class="text-xs text-gray-500">Next {{ days }} days</div>
+                            <div class="text-xs text-gray-500">{{ daysCaption }}</div>
                         </div>
 
                         <div v-if="upcomingItems.length" class="mt-2 space-y-1">
@@ -149,10 +149,32 @@ import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
     apiUrl: { type: String, required: true },
-    days: { type: Number, default: 60 },
+    days: { type: Number, default: null },
 });
 
-const days = computed(() => Math.max(1, Math.min(366, Number(props.days || 60))));
+function clampDays(value) {
+    if (value === null || value === undefined || value === '') return null;
+
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return null;
+
+    return Math.max(0, Math.min(366, Math.trunc(numeric)));
+}
+
+function daysUntilEndOfYear(fromDate = new Date()) {
+    const start = startOfDay(fromDate);
+    const end = startOfDay(new Date(start.getFullYear(), 11, 31));
+    const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000);
+    return Math.max(0, diffDays);
+}
+
+const explicitDays = computed(() => clampDays(props.days));
+const days = computed(() => explicitDays.value ?? daysUntilEndOfYear(new Date()));
+
+const daysCaption = computed(() => {
+    if (explicitDays.value !== null) return `Next ${days.value} days`;
+    return 'Until end of year';
+});
 
 const loading = ref(true);
 const error = ref('');
@@ -275,14 +297,13 @@ function formatIsoDate(iso) {
 
 function dayCellClass(day) {
     if (day.isSelected) return 'ring-2 ring-orange-500 ring-inset';
-    if (day.isToday) return 'ring-1 ring-orange-500 ring-inset';
     if (!day.isCurrentMonth) return 'bg-gray-50/60';
     return '';
 }
 
 function dayNumberClass(day) {
+    if (day.isToday) return 'bg-orange-500 text-white';
     if (day.isSelected) return 'text-orange-700';
-    if (day.isToday) return 'text-orange-800';
     if (!day.isCurrentMonth) return 'text-gray-400';
     return 'text-gray-900';
 }
