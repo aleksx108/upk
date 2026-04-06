@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\CountryCode;
+use App\Http\Requests\Personnel\StorePersonnelRequest;
+use App\Http\Requests\Personnel\UpdatePersonnelRequest;
 use App\Models\Company;
 use App\Models\Occupation;
 use App\Models\Personnel;
@@ -12,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PersonnelController extends Controller
@@ -73,13 +73,16 @@ class PersonnelController extends Controller
 
         $personnel = $query->paginate(15)->withQueryString();
 
+        $companies = Company::query()->orderBy('name')->get(['id', 'name']);
+        $occupations = Occupation::query()->orderBy('name')->get(['id', 'name']);
+
         return view('personnel.index', [
             'personnel' => $personnel,
             'search' => $search,
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
-            'occupations' => Occupation::query()->orderBy('name')->get(['id', 'name']),
-            'companyOptions' => Company::query()->orderBy('name')->get(['id', 'name'])->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values(),
-            'occupationOptions' => Occupation::query()->orderBy('name')->get(['id', 'name'])->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values(),
+            'companies' => $companies,
+            'occupations' => $occupations,
+            'companyOptions' => $companies->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values(),
+            'occupationOptions' => $occupations->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values(),
             'companyId' => $companyId,
             'occupationId' => $occupationId,
         ]);
@@ -104,54 +107,9 @@ class PersonnelController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StorePersonnelRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'personal_code' => ['required', 'string', 'max:255', 'unique:personnel,personal_code'],
-            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
-            'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone_number' => [
-                'required',
-                'string',
-                'max:32',
-                function ($attribute, $value, $fail) {
-                    $value = (string) $value;
-
-                    // Loose international validation (E.164-ish): optional leading +, digits, spaces and common separators.
-                    if (!preg_match('/^\+?[0-9][0-9\s().-]*$/', $value)) {
-                        $fail(__('Invalid phone number format.'));
-                        return;
-                    }
-
-                    $digits = preg_replace('/\D+/', '', $value);
-                    $length = is_string($digits) ? strlen($digits) : 0;
-
-                    if ($length < 7 || $length > 15) {
-                        $fail(__('Phone number must contain between 7 and 15 digits.'));
-                    }
-                },
-            ],
-            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:personnel,email'],
-
-            'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],
-            'postal_code' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'street_number' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:10000'],
-
-            'portrait_photo' => ['nullable', 'image', 'max:5120'],
-            'remove_portrait_photo' => ['sometimes', 'boolean'],
-
-            'workplaces' => ['nullable', 'array'],
-            'workplaces.*.id' => ['nullable', 'integer'],
-            'workplaces.*.company_id' => ['required', 'integer', 'exists:companies,id'],
-            'workplaces.*.occupation_id' => ['required', 'integer', 'exists:occupations,id'],
-            'workplaces.*.from_date' => ['nullable', 'date'],
-            'workplaces.*.to_date' => ['nullable', 'date'],
-        ]);
+        $validated = $request->validated();
 
         $workplaces = $validated['workplaces'] ?? [];
 
@@ -204,54 +162,9 @@ class PersonnelController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Personnel $personnel): RedirectResponse
+    public function update(UpdatePersonnelRequest $request, Personnel $personnel): RedirectResponse
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'personal_code' => ['required', 'string', 'max:255', Rule::unique('personnel', 'personal_code')->ignore($personnel->id)],
-            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
-            'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone_number' => [
-                'required',
-                'string',
-                'max:32',
-                function ($attribute, $value, $fail) {
-                    $value = (string) $value;
-
-                    // Loose international validation (E.164-ish): optional leading +, digits, spaces and common separators.
-                    if (!preg_match('/^\+?[0-9][0-9\s().-]*$/', $value)) {
-                        $fail(__('Invalid phone number format.'));
-                        return;
-                    }
-
-                    $digits = preg_replace('/\D+/', '', $value);
-                    $length = is_string($digits) ? strlen($digits) : 0;
-
-                    if ($length < 7 || $length > 15) {
-                        $fail(__('Phone number must contain between 7 and 15 digits.'));
-                    }
-                },
-            ],
-            'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('personnel', 'email')->ignore($personnel->id)],
-
-            'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],
-            'postal_code' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'street_number' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:10000'],
-
-            'portrait_photo' => ['nullable', 'image', 'max:5120'],
-            'remove_portrait_photo' => ['sometimes', 'boolean'],
-
-            'workplaces' => ['nullable', 'array'],
-            'workplaces.*.id' => ['nullable', 'integer'],
-            'workplaces.*.company_id' => ['required', 'integer', 'exists:companies,id'],
-            'workplaces.*.occupation_id' => ['required', 'integer', 'exists:occupations,id'],
-            'workplaces.*.from_date' => ['nullable', 'date'],
-            'workplaces.*.to_date' => ['nullable', 'date'],
-        ]);
+        $validated = $request->validated();
 
         $removePortraitPhoto = $request->boolean('remove_portrait_photo');
         $workplaces = $validated['workplaces'] ?? [];
@@ -334,7 +247,3 @@ class PersonnelController extends Controller
         $deleteQuery->delete();
     }
 }
-
-
-
-
