@@ -112,7 +112,27 @@ class PersonnelController extends Controller
             'personal_code' => ['required', 'string', 'max:255', 'unique:personnel,personal_code'],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
             'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone_number' => ['required', 'string', 'max:255'],
+            'phone_number' => [
+                'required',
+                'string',
+                'max:32',
+                function ($attribute, $value, $fail) {
+                    $value = (string) $value;
+
+                    // Loose international validation (E.164-ish): optional leading +, digits, spaces and common separators.
+                    if (!preg_match('/^\+?[0-9][0-9\s().-]*$/', $value)) {
+                        $fail(__('Invalid phone number format.'));
+                        return;
+                    }
+
+                    $digits = preg_replace('/\D+/', '', $value);
+                    $length = is_string($digits) ? strlen($digits) : 0;
+
+                    if ($length < 7 || $length > 15) {
+                        $fail(__('Phone number must contain between 7 and 15 digits.'));
+                    }
+                },
+            ],
             'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:personnel,email'],
 
             'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],
@@ -192,7 +212,27 @@ class PersonnelController extends Controller
             'personal_code' => ['required', 'string', 'max:255', Rule::unique('personnel', 'personal_code')->ignore($personnel->id)],
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
             'birthday_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone_number' => ['required', 'string', 'max:255'],
+            'phone_number' => [
+                'required',
+                'string',
+                'max:32',
+                function ($attribute, $value, $fail) {
+                    $value = (string) $value;
+
+                    // Loose international validation (E.164-ish): optional leading +, digits, spaces and common separators.
+                    if (!preg_match('/^\+?[0-9][0-9\s().-]*$/', $value)) {
+                        $fail(__('Invalid phone number format.'));
+                        return;
+                    }
+
+                    $digits = preg_replace('/\D+/', '', $value);
+                    $length = is_string($digits) ? strlen($digits) : 0;
+
+                    if ($length < 7 || $length > 15) {
+                        $fail(__('Phone number must contain between 7 and 15 digits.'));
+                    }
+                },
+            ],
             'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('personnel', 'email')->ignore($personnel->id)],
 
             'country_code' => ['nullable', 'string', 'size:2', Rule::in(CountryCode::values())],

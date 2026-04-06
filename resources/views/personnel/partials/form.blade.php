@@ -144,7 +144,10 @@
             <x-text-input
                 id="phone_number"
                 name="phone_number"
-                type="text"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                placeholder="+371 00000000"
                 class="mt-1 block w-full"
                 :value="old('phone_number', $personnel?->phone_number)"
                 :disabled="$readonly"
@@ -174,17 +177,43 @@
             <div>
                 <x-input-label for="country_code" :value="__('Country code')" />
                 @php($countryCode = old('country_code', $personnel?->country_code))
-                <select
-                    id="country_code"
-                    name="country_code"
-                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
-                    @disabled($readonly)
-                >
-                    <option value="">{{ __("Select") }}</option>
-                    @foreach(\App\Enums\CountryCode::cases() as $code)
-                        <option value="{{ $code->value }}" @selected($countryCode === $code->value)>{{ $code->label(app()->getLocale()) }}</option>
-                    @endforeach
-                </select>
+
+                @if($readonly)
+                    <select
+                        id="country_code"
+                        name="country_code"
+                        class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                        @disabled($readonly)
+                    >
+                        <option value="">{{ __("Select") }}</option>
+                        @foreach(\App\Enums\CountryCode::cases() as $code)
+                            <option value="{{ $code->value }}" @selected($countryCode === $code->value)>{{ $code->label(app()->getLocale()) }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    @php($countryOptions = collect(\App\Enums\CountryCode::cases())->map(fn ($code) => ['value' => $code->value, 'label' => $code->label(app()->getLocale())])->values())
+
+                    <div
+                        class="vue-searchable-select"
+                        data-id="country_code"
+                        data-name="country_code"
+                        data-placeholder="{{ __("Select") }}"
+                        data-selected="{{ $countryCode }}"
+                        data-options='@json($countryOptions)'
+                    >
+                        <select
+                            id="country_code"
+                            name="country_code"
+                            class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
+                        >
+                            <option value="">{{ __("Select") }}</option>
+                            @foreach(\App\Enums\CountryCode::cases() as $code)
+                                <option value="{{ $code->value }}" @selected($countryCode === $code->value)>{{ $code->label(app()->getLocale()) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
                 <x-input-error :messages="$errors->get('country_code')" class="mt-2" />
             </div>
 
