@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,5 +57,54 @@ class Personnel extends Model implements HasMedia
     public function workplaces(): HasMany
     {
         return $this->hasMany(Workplace::class);
+    }
+
+    public function scopeForIndex(Builder $query, string $search, ?int $companyId, ?int $occupationId): Builder
+    {
+        return $query
+            ->with([
+                'media',
+                'workplaces' => function ($builder) {
+                    $builder
+                        ->with(['company', 'occupation'])
+                        ->active()
+                        ->orderedForList();
+                },
+            ])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->search($search)
+            ->filterByActiveWorkplace($companyId, $occupationId);
+    }
+
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        if ($search === '') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($search) {
+            $builder
+                ->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('personal_code', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('phone_number', 'like', "%{$search}%")
+                ->orWhere('city', 'like', "%{$search}%")
+                ->orWhere('street', 'like', "%{$search}%");
+        });
+    }
+
+    public function scopeFilterByActiveWorkplace(Builder $query, ?int $companyId, ?int $occupationId): Builder
+    {
+        if (! $companyId && ! $occupationId) {
+            return $query;
+        }
+
+        return $query->whereHas('workplaces', function (Builder $builder) use ($companyId, $occupationId) {
+            $builder
+                ->active()
+                ->matchesFilters($companyId, $occupationId);
+        });
     }
 }

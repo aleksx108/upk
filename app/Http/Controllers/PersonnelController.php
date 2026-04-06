@@ -27,51 +27,10 @@ class PersonnelController extends Controller
         $companyId = filter_var($request->input('company_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
         $occupationId = filter_var($request->input('occupation_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
 
-        $query = Personnel::query()
-            ->with([
-                'media',
-                'workplaces' => function ($builder) {
-                    $builder
-                        ->with(['company', 'occupation'])
-                        ->orderByRaw('to_date is null desc')
-                        ->orderByDesc('to_date')
-                        ->orderByDesc('from_date');
-                },
-            ])
-            ->orderBy('last_name')
-            ->orderBy('first_name');
-
-        // single input for universal searching in multiple fields
-        if ($search !== '') {
-            $query->where(function ($builder) use ($search) {
-                $builder
-                    ->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('personal_code', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone_number', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%")
-                    ->orWhere('street', 'like', "%{$search}%");
-            });
-        }
-
-        if ($companyId) {
-            $query->whereHas('workplaces', function ($builder) use ($companyId) {
-                $builder->where(function ($builder) {
-                    $builder->whereNull('to_date')->orWhereDate('to_date', '>=', today());
-                })->where('company_id', $companyId);
-            });
-        }
-
-        if ($occupationId) {
-            $query->whereHas('workplaces', function ($builder) use ($occupationId) {
-                $builder->where(function ($builder) {
-                    $builder->whereNull('to_date')->orWhereDate('to_date', '>=', today());
-                })->where('occupation_id', $occupationId);
-            });
-        }
-
-        $personnel = $query->paginate(15)->withQueryString();
+        $personnel = Personnel::query()
+            ->forIndex($search, $companyId, $occupationId)
+            ->paginate(15)
+            ->withQueryString();
 
         $companies = Company::query()->orderBy('name')->get(['id', 'name']);
         $occupations = Occupation::query()->orderBy('name')->get(['id', 'name']);
@@ -247,4 +206,3 @@ class PersonnelController extends Controller
         $deleteQuery->delete();
     }
 }
-
