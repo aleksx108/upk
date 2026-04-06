@@ -65,7 +65,7 @@ class CompanyController extends Controller
 
         $company = Company::create($validated);
 
-        return Redirect::route('companies.show', $company);
+        return Redirect::route('companies.show', $company)->with('status', __('Company created successfully.'));
     }
 
     /**
@@ -106,7 +106,7 @@ class CompanyController extends Controller
 
         $company->update($validated);
 
-        return Redirect::route('companies.show', $company);
+        return Redirect::route('companies.show', $company)->with('status', __('Company updated successfully.'));
     }
 
     /**
@@ -114,8 +114,23 @@ class CompanyController extends Controller
      */
     public function destroy(Company $company): RedirectResponse
     {
+        $activeWorkplaceCount = $company->workplaces()
+            ->whereHas('personnel')
+            ->count();
+
+        if ($activeWorkplaceCount > 0) {
+            return Redirect::back()->with(
+                'error',
+                trans_choice(
+                    'Cannot delete :name because it is linked to :count active personnel workplace.|Cannot delete :name because it is linked to :count active personnel workplaces.',
+                    $activeWorkplaceCount,
+                    ['name' => $company->name, 'count' => $activeWorkplaceCount]
+                )
+            );
+        }
+
         $company->delete();
 
-        return Redirect::route('companies.index');
+        return Redirect::route('companies.index')->with('status', __('Company deleted.'));
     }
 }

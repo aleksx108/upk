@@ -125,7 +125,7 @@ class PersonnelController extends Controller
                 ->toMediaCollection('portrait_photo');
         }
 
-        return Redirect::route('personnel.show', $personnel);
+        return Redirect::route('personnel.show', $personnel)->with('status', __('Personnel created successfully.'));
     }
 
     /**
@@ -183,7 +183,7 @@ class PersonnelController extends Controller
             $personnel->clearMediaCollection('portrait_photo');
         }
 
-        return Redirect::route('personnel.show', $personnel);
+        return Redirect::route('personnel.show', $personnel)->with('status', __('Personnel updated successfully.'));
     }
 
     /**
@@ -207,7 +207,7 @@ class PersonnelController extends Controller
     {
         $personnel->delete();
 
-        return Redirect::route('personnel.index');
+        return Redirect::route('personnel.index')->with('status', __('Personnel deleted.'));
     }
 
     private function syncWorkplaces(Personnel $personnel, array $workplaces): void
@@ -247,3 +247,4 @@ class PersonnelController extends Controller
         $deleteQuery->delete();
     }
 }
+

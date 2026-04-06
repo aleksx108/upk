@@ -8,20 +8,32 @@
     $portraitPhotoUrl = $personnel?->portrait_photo_url;
     $placeholderPortraitSrc = asset('img/profile_placeholder.png');
     $portraitSrc = $removePortraitPhoto ? $placeholderPortraitSrc : ($portraitPhotoUrl ?: $placeholderPortraitSrc);
-    $workplaceRows = old('workplaces');
-    if (!is_array($workplaceRows)) {
+
+    $workplaceRowsInput = old('workplaces');
+    if (!is_array($workplaceRowsInput)) {
         $workplaceRows = $personnel?->workplaces
-            ?->map(fn ($workplace) => [
+            ?->values()
+            ?->map(fn ($workplace, $index) => [
+                '_form_index' => $index,
                 'id' => $workplace->id,
                 'company_id' => $workplace->company_id,
                 'occupation_id' => $workplace->occupation_id,
                 'from_date' => $workplace->from_date?->format('Y-m-d'),
                 'to_date' => $workplace->to_date?->format('Y-m-d'),
             ])
-            ?->values()
             ?->toArray() ?? [];
     } else {
-        $workplaceRows = array_values($workplaceRows);
+        $workplaceRows = collect($workplaceRowsInput)
+            ->map(fn ($row, $index) => [
+                '_form_index' => (int) $index,
+                'id' => $row['id'] ?? null,
+                'company_id' => $row['company_id'] ?? '',
+                'occupation_id' => $row['occupation_id'] ?? '',
+                'from_date' => $row['from_date'] ?? '',
+                'to_date' => $row['to_date'] ?? '',
+            ])
+            ->values()
+            ->toArray();
     }
 
     $companies = $companies ?? collect();
@@ -29,6 +41,22 @@
 
     $companyOptions = $companyOptions ?? $companies->map(fn ($company) => ['value' => $company->id, 'label' => (string) $company->name])->values();
     $occupationOptions = $occupationOptions ?? $occupations->map(fn ($occupation) => ['value' => $occupation->id, 'label' => (string) $occupation->name])->values();
+
+    $workplaceErrors = collect($errors->getMessages())
+        ->filter(fn ($messages, $key) => str_starts_with($key, 'workplaces.'))
+        ->all();
+
+    $workplaceTexts = [
+        'title' => __('Workplaces'),
+        'addWorkplace' => __('Add workplace'),
+        'empty' => __('No workplaces yet. Click "Add workplace".'),
+        'company' => __('Company'),
+        'occupation' => __('Occupation'),
+        'fromDate' => __('From date'),
+        'toDate' => __('To date'),
+        'remove' => __('Remove'),
+        'select' => __('Select'),
+    ];
 @endphp
 
 <div class="space-y-6">
@@ -272,21 +300,11 @@
     </div>
 
     <div class="pt-6">
-        <div class="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
-            <h2 class="text-base font-semibold text-orange-500">{{ __('Workplaces') }}</h2>
-
-            @unless($readonly)
-                <button
-                    type="button"
-                    id="add_workplace"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                >
-                    {{ __('Add workplace') }}
-                </button>
-            @endunless
-        </div>
-
         @if($readonly)
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
+                <h2 class="text-base font-semibold text-orange-500">{{ __('Workplaces') }}</h2>
+            </div>
+
             <div class="mt-4">
                 @if(($personnel?->workplaces?->count() ?? 0) === 0)
                     <p class="text-sm text-gray-500">{{ __('No workplaces added.') }}</p>
@@ -316,265 +334,13 @@
                 @endif
             </div>
         @else
-            @php($workplaceCount = is_array($workplaceRows) ? count($workplaceRows) : 0)
-
-            <p id="workplaces_empty" class="mt-4 text-sm text-gray-500 {{ $workplaceCount > 0 ? 'hidden' : '' }}">
-                {{ __('No workplaces yet. Click "Add workplace".') }}
-            </p>
-
-            <div id="workplaces_container" data-next-index="{{ $workplaceCount }}" class="mt-4 space-y-4">
-                @foreach($workplaceRows as $i => $row)
-                    <div class="workplace-row rounded-lg border border-gray-200 p-4" data-workplace-index="{{ $i }}">
-                        <input type="hidden" name="workplaces[{{ $i }}][id]" value="{{ $row['id'] ?? '' }}" />
-
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div>
-                                <x-input-label for="workplaces_{{ $i }}_company_id" :value="__('Company')" required />
-                                <div
-                                    class="vue-searchable-select"
-                                    data-id="workplaces_{{ $i }}_company_id"
-                                    data-name="workplaces[{{ $i }}][company_id]"
-                                    data-placeholder="{{ __('Select') }}"
-                                    data-selected="{{ $row['company_id'] ?? '' }}"
-                                    data-options='@json($companyOptions)'
-                                >
-                                    <select
-                                        id="workplaces_{{ $i }}_company_id"
-                                        name="workplaces[{{ $i }}][company_id]"
-                                        class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                        required
-                                    >
-                                        <option value="">{{ __('Select') }}</option>
-                                        @foreach($companies as $company)
-                                            <option value="{{ $company->id }}" @selected((string) ($row['company_id'] ?? '') === (string) $company->id)>
-                                                {{ $company->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.company_id')" class="mt-2" />
-                            </div>
-
-                            <div>
-                                <x-input-label for="workplaces_{{ $i }}_occupation_id" :value="__('Occupation')" required />
-                                <div
-                                    class="vue-searchable-select"
-                                    data-id="workplaces_{{ $i }}_occupation_id"
-                                    data-name="workplaces[{{ $i }}][occupation_id]"
-                                    data-placeholder="{{ __('Select') }}"
-                                    data-selected="{{ $row['occupation_id'] ?? '' }}"
-                                    data-options='@json($occupationOptions)'
-                                >
-                                    <select
-                                        id="workplaces_{{ $i }}_occupation_id"
-                                        name="workplaces[{{ $i }}][occupation_id]"
-                                        class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                        required
-                                    >
-                                        <option value="">{{ __('Select') }}</option>
-                                        @foreach($occupations as $occupation)
-                                            <option value="{{ $occupation->id }}" @selected((string) ($row['occupation_id'] ?? '') === (string) $occupation->id)>
-                                                {{ $occupation->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.occupation_id')" class="mt-2" />
-                            </div>
-
-                            <div>
-                                <x-input-label for="workplaces_{{ $i }}_from_date" :value="__('From date')" />
-                                <x-text-input
-                                    id="workplaces_{{ $i }}_from_date"
-                                    name="workplaces[{{ $i }}][from_date]"
-                                    type="date"
-                                    class="mt-1 block w-full"
-                                    :value="old('workplaces.' . $i . '.from_date', $row['from_date'] ?? '')"
-                                />
-                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.from_date')" class="mt-2" />
-                            </div>
-
-                            <div>
-                                <x-input-label for="workplaces_{{ $i }}_to_date" :value="__('To date')" />
-                                <x-text-input
-                                    id="workplaces_{{ $i }}_to_date"
-                                    name="workplaces[{{ $i }}][to_date]"
-                                    type="date"
-                                    class="mt-1 block w-full"
-                                    :value="old('workplaces.' . $i . '.to_date', $row['to_date'] ?? '')"
-                                />
-                                <x-input-error :messages="$errors->get('workplaces.' . $i . '.to_date')" class="mt-2" />
-                            </div>
-                        </div>
-
-                        <div class="mt-4 flex justify-end">
-                            <button type="button" class="remove-workplace inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                {{ __('Remove') }}
-                            </button>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <template id="workplace_template">
-                <div class="workplace-row rounded-lg border border-gray-200 p-4" data-workplace-index="__INDEX__">
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <x-input-label for="workplaces___INDEX___company_id" :value="__('Company')" required />
-                            <div
-                                class="vue-searchable-select"
-                                data-id="workplaces___INDEX___company_id"
-                                data-name="workplaces[__INDEX__][company_id]"
-                                data-placeholder="{{ __('Select') }}"
-                                data-selected=""
-                                data-options='@json($companyOptions)'
-                            >
-                                <select
-                                    id="workplaces___INDEX___company_id"
-                                    name="workplaces[__INDEX__][company_id]"
-                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                    required
-                                >
-                                    <option value="">{{ __('Select') }}</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <x-input-label for="workplaces___INDEX___occupation_id" :value="__('Occupation')" required />
-                            <div
-                                class="vue-searchable-select"
-                                data-id="workplaces___INDEX___occupation_id"
-                                data-name="workplaces[__INDEX__][occupation_id]"
-                                data-placeholder="{{ __('Select') }}"
-                                data-selected=""
-                                data-options='@json($occupationOptions)'
-                            >
-                                <select
-                                    id="workplaces___INDEX___occupation_id"
-                                    name="workplaces[__INDEX__][occupation_id]"
-                                    class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
-                                    required
-                                >
-                                    <option value="">{{ __('Select') }}</option>
-                                    @foreach($occupations as $occupation)
-                                        <option value="{{ $occupation->id }}">{{ $occupation->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <x-input-label for="workplaces___INDEX___from_date" :value="__('From date')" />
-                            <x-text-input
-                                id="workplaces___INDEX___from_date"
-                                name="workplaces[__INDEX__][from_date]"
-                                type="date"
-                                class="mt-1 block w-full"
-                            />
-                        </div>
-
-                        <div>
-                            <x-input-label for="workplaces___INDEX___to_date" :value="__('To date')" />
-                            <x-text-input
-                                id="workplaces___INDEX___to_date"
-                                name="workplaces[__INDEX__][to_date]"
-                                type="date"
-                                class="mt-1 block w-full"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="mt-4 flex justify-end">
-                        <button type="button" class="remove-workplace inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            {{ __('Remove') }}
-                        </button>
-                    </div>
-                </div>
-            </template>
+            <div
+                class="vue-workplaces-editor"
+                data-initial-rows='@json($workplaceRows)'
+                data-company-options='@json($companyOptions)'
+                data-occupation-options='@json($occupationOptions)'
+                data-errors='@json($workplaceErrors)'
+                data-texts='@json($workplaceTexts)'
+            ></div>
         @endif
     </div>
-
-    <div class="pt-6">
-        <h2 class="text-base font-semibold text-orange-500 border-b border-gray-200 pb-2">{{ __('Notes') }}</h2>
-
-        <div class="mt-4">
-            <textarea
-                id="notes"
-                name="notes"
-                rows="4"
-                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
-                @disabled($readonly)
-            >{{ old('notes', $personnel?->notes) }}</textarea>
-            <x-input-error :messages="$errors->get('notes')" class="mt-2" />
-        </div>
-    </div>
-</div>
-
-@unless($readonly)
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const workplacesContainer = document.getElementById('workplaces_container');
-            const addWorkplaceButton = document.getElementById('add_workplace');
-            const workplaceTemplate = document.getElementById('workplace_template');
-            const workplacesEmpty = document.getElementById('workplaces_empty');
-
-            if (workplacesContainer && addWorkplaceButton && workplaceTemplate) {
-                let nextIndex = parseInt(workplacesContainer.dataset.nextIndex || '0', 10);
-
-                const addWorkplaceRow = () => {
-                    const html = workplaceTemplate.innerHTML.replaceAll('__INDEX__', String(nextIndex));
-                    const wrapper = document.createElement('div');
-                    wrapper.innerHTML = html.trim();
-
-                    const row = wrapper.firstElementChild;
-                    if (!row) {
-                        return;
-                    }
-
-                    workplacesContainer.appendChild(row);
-                    nextIndex += 1;
-                    workplacesContainer.dataset.nextIndex = String(nextIndex);
-
-                    if (workplacesEmpty) {
-                        workplacesEmpty.classList.add('hidden');
-                    }
-
-                    if (window.mountSearchableSelects) {
-                        window.mountSearchableSelects();
-                    }
-                };
-
-                addWorkplaceButton.addEventListener('click', addWorkplaceRow);
-
-                workplacesContainer.addEventListener('click', (event) => {
-                    const removeButton = event.target.closest('.remove-workplace');
-                    if (!removeButton) {
-                        return;
-                    }
-
-                    const row = removeButton.closest('.workplace-row');
-                    if (row) {
-                        row.querySelectorAll('.vue-searchable-select').forEach((el) => {
-                            const app = el.__searchableSelectApp;
-                            if (app && typeof app.unmount === 'function') {
-                                app.unmount();
-                            }
-                        });
-
-                        row.remove();
-                    }
-
-                    if (workplacesEmpty && workplacesContainer.querySelectorAll('.workplace-row').length === 0) {
-                        workplacesEmpty.classList.remove('hidden');
-                    }
-                });
-            }
-        });
-    </script>
-@endunless
-
-

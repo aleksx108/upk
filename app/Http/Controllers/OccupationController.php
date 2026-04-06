@@ -51,7 +51,7 @@ class OccupationController extends Controller
 
         $occupation = Occupation::create($validated);
 
-        return Redirect::route('occupations.show', $occupation);
+        return Redirect::route('occupations.show', $occupation)->with('status', __('Occupation created successfully.'));
     }
 
     /**
@@ -85,7 +85,7 @@ class OccupationController extends Controller
 
         $occupation->update($validated);
 
-        return Redirect::route('occupations.show', $occupation);
+        return Redirect::route('occupations.show', $occupation)->with('status', __('Occupation updated successfully.'));
     }
 
     /**
@@ -93,8 +93,23 @@ class OccupationController extends Controller
      */
     public function destroy(Occupation $occupation): RedirectResponse
     {
+        $activeWorkplaceCount = $occupation->workplaces()
+            ->whereHas('personnel')
+            ->count();
+
+        if ($activeWorkplaceCount > 0) {
+            return Redirect::back()->with(
+                'error',
+                trans_choice(
+                    'Cannot delete :name because it is linked to :count active personnel workplace.|Cannot delete :name because it is linked to :count active personnel workplaces.',
+                    $activeWorkplaceCount,
+                    ['name' => $occupation->name, 'count' => $activeWorkplaceCount]
+                )
+            );
+        }
+
         $occupation->delete();
 
-        return Redirect::route('occupations.index');
+        return Redirect::route('occupations.index')->with('status', __('Occupation deleted.'));
     }
 }

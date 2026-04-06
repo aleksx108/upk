@@ -1,15 +1,25 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import { createApp } from 'vue';
+import BirthdayCalendar from './components/BirthdayCalendar.vue';
+import PortraitPhotoInput from './components/PortraitPhotoInput.vue';
+import SearchableSelect from './components/SearchableSelect.vue';
+import WorkplacesEditor from './components/WorkplacesEditor.vue';
 
 window.Alpine = Alpine;
 
 Alpine.start();
 
-import { createApp } from 'vue';
-import BirthdayCalendar from './components/BirthdayCalendar.vue';
-import SearchableSelect from './components/SearchableSelect.vue';
-import PortraitPhotoInput from './components/PortraitPhotoInput.vue';
+function parseJsonData(raw, fallback) {
+    if (!raw) return fallback;
+
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return fallback;
+    }
+}
 
 const birthdayCalendarEl = document.getElementById('birthday-calendar');
 if (birthdayCalendarEl) {
@@ -24,8 +34,6 @@ if (birthdayCalendarEl) {
     createApp(BirthdayCalendar, props).mount(birthdayCalendarEl);
 }
 
-
-
 function mountSearchableSelects() {
     document.querySelectorAll('.vue-searchable-select').forEach((el) => {
         if (el.dataset.mounted === '1') return;
@@ -35,14 +43,7 @@ function mountSearchableSelects() {
         const placeholder = el.dataset.placeholder || 'All';
         const fallbackSelect = el.querySelector('select');
         const selected = (el.dataset.selected ?? (fallbackSelect ? fallbackSelect.value : '')) ?? '';
-        const optionsRaw = el.dataset.options || '[]';
-
-        let options = [];
-        try {
-            options = JSON.parse(optionsRaw);
-        } catch {
-            options = [];
-        }
+        const options = parseJsonData(el.dataset.options || '[]', []);
 
         if (!id || !name) return;
 
@@ -112,3 +113,30 @@ function mountPortraitPhotoInputs() {
 }
 
 mountPortraitPhotoInputs();
+
+function mountWorkplacesEditors() {
+    document.querySelectorAll('.vue-workplaces-editor').forEach((el) => {
+        if (el.dataset.mounted === '1') return;
+
+        const initialRows = parseJsonData(el.dataset.initialRows || '[]', []);
+        const companyOptions = parseJsonData(el.dataset.companyOptions || '[]', []);
+        const occupationOptions = parseJsonData(el.dataset.occupationOptions || '[]', []);
+        const errors = parseJsonData(el.dataset.errors || '{}', {});
+        const texts = parseJsonData(el.dataset.texts || '{}', {});
+
+        el.dataset.mounted = '1';
+
+        const app = createApp(WorkplacesEditor, {
+            initialRows: Array.isArray(initialRows) ? initialRows : [],
+            companyOptions: Array.isArray(companyOptions) ? companyOptions : [],
+            occupationOptions: Array.isArray(occupationOptions) ? occupationOptions : [],
+            errors: errors && typeof errors === 'object' ? errors : {},
+            texts: texts && typeof texts === 'object' ? texts : {},
+        });
+
+        app.mount(el);
+        el.__workplacesEditorApp = app;
+    });
+}
+
+mountWorkplacesEditors();
