@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Personnel\IndexPersonnelRequest;
 use App\Http\Requests\Personnel\StorePersonnelRequest;
 use App\Http\Requests\Personnel\UpdatePersonnelRequest;
 use App\Models\Company;
@@ -9,7 +10,6 @@ use App\Models\Occupation;
 use App\Models\Personnel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
@@ -20,12 +20,13 @@ class PersonnelController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): View
+    public function index(IndexPersonnelRequest $request): View
     {
-        $search = trim((string) $request->input('q', ''));
+        $validated = $request->validated();
 
-        $companyId = filter_var($request->input('company_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
-        $occupationId = filter_var($request->input('occupation_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+        $search = trim((string) ($validated['q'] ?? ''));
+        $companyId = $validated['company_id'] ?? null;
+        $occupationId = $validated['occupation_id'] ?? null;
 
         $personnel = Personnel::query()
             ->forIndex($search, $companyId, $occupationId)
@@ -72,6 +73,7 @@ class PersonnelController extends Controller
 
         $workplaces = $validated['workplaces'] ?? [];
 
+        // Remove non-personnel attributes before creating the personnel model
         unset($validated['portrait_photo'], $validated['remove_portrait_photo'], $validated['workplaces']);
 
         $personnel = Personnel::create($validated);
@@ -128,6 +130,7 @@ class PersonnelController extends Controller
         $removePortraitPhoto = $request->boolean('remove_portrait_photo');
         $workplaces = $validated['workplaces'] ?? [];
 
+		// Remove non-personnel attributes before creating the personnel model
         unset($validated['portrait_photo'], $validated['remove_portrait_photo'], $validated['workplaces']);
 
         $personnel->update($validated);
@@ -169,6 +172,9 @@ class PersonnelController extends Controller
         return Redirect::route('personnel.index')->with('status', __('Personnel deleted.'));
     }
 
+    /**
+     * Process submitted workplaces data, creating/updating/deleting workplaces as needed to sync with submitted data.
+     */
     private function syncWorkplaces(Personnel $personnel, array $workplaces): void
     {
         $savedIds = [];
