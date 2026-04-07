@@ -7,6 +7,9 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * Display the dashboard view with statistics and charts.
+     */
     public function __invoke()
     {
         $start = now()->subDays(29)->startOfDay();
