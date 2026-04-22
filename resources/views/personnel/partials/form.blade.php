@@ -344,3 +344,19 @@
             ></div>
         @endif
     </div>
+
+    <div class="pt-6">
+        <h2 class="text-base font-semibold text-orange-500 border-b border-gray-200 pb-2">{{ __('Notes') }}</h2>
+
+        <div class="mt-4">
+            <x-input-label for="notes" :value="__('Notes')" />
+            <textarea
+                id="notes"
+                name="notes"
+                rows="5"
+                class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                @disabled($readonly)
+            >{{ old('notes', $personnel?->notes) }}</textarea>
+            <x-input-error :messages="$errors->get('notes')" class="mt-2" />
+        </div>
+    </div>
